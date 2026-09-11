@@ -44,7 +44,8 @@ const HELP = `agent-lock, pin the files your coding agents obey
 `;
 
 const argv = process.argv.slice(2);
-const cmd = argv[0] || 'help';
+// `--help` and `-h` are what a first-time reader types; they are the same command as `help`.
+const cmd = !argv[0] || argv[0] === '--help' || argv[0] === '-h' ? 'help' : argv[0];
 const flags = new Set(argv.slice(1).filter((a) => a.startsWith('--')));
 const target = argv.slice(1).find((a) => !a.startsWith('--'));
 const targetRoot = () => (target === 'home' ? 'home' : rootOf(target));
