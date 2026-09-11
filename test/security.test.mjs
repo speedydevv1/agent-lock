@@ -124,6 +124,28 @@ test('project directory expansions preserve spaces in referenced paths', () => {
   assert.ok(inventoryCheckout(root).files.some((f) => f.rel === 'check.js' && f.kind === 'script'));
 });
 
+test('MCP argument paths containing spaces remain watched', () => {
+  const root = fixture();
+  write(root, 'folder with spaces/run.js', 'console.log("before")');
+  write(
+    root,
+    '.mcp.json',
+    JSON.stringify({
+      mcpServers: {
+        local: {
+          command: 'node',
+          args: ['folder with spaces/run.js'],
+        },
+      },
+    })
+  );
+  const inv = inventoryCheckout(root);
+  assert.ok(inv.files.some((f) => f.rel === 'folder with spaces/run.js' && f.kind === 'script'));
+  seal(inv);
+  write(root, 'folder with spaces/run.js', 'console.log("after")');
+  assert.ok(changed(root).hot);
+});
+
 test('plugin scripts remain watched when only a project enables the plugin', () => {
   const plugin = path.join(tmp, 'installed plugin');
   write(
