@@ -259,6 +259,17 @@ test('windows: PATHEXT names, registry policy, TOML keys and the shims', () => {
   assert.ok(cmd.includes('AGENT_LOCK_SKIP'), 'the shim names its own escape hatch');
 });
 
+test('version: --version, -v and the bare word all print what package.json says', () => {
+  const pkg = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  for (const arg of ['--version', '-v', 'version']) {
+    const r = cli([arg]);
+    assert.equal(r.status, 0, `${arg} exited ${r.status}`);
+    assert.equal(r.stdout.trim(), `agent-lock ${pkg.version}`, arg);
+  }
+  // a real unknown command still fails, so the alias table cannot swallow a typo
+  assert.equal(cli(['--bogus']).status, 1);
+});
+
 test('paths and kinds are "/"-shaped, and the new configs are recognised', () => {
   assert.equal(slash('a\\b\\c'), 'a/b/c');
   assert.equal(relFrom('/r', '/r/a/b'), 'a/b');

@@ -3,6 +3,7 @@
 // agent config files (Claude Code, Codex, Gemini, plus the VS Code / Cursor files next to them),
 // shows you what is in them, and asks again the moment any of them change.
 // Zero dependencies. Node 18+. MIT.
+import fs from 'node:fs';
 import {
   check,
   explain,
@@ -37,6 +38,7 @@ const HELP = `agent-lock, pin the files your coding agents obey
   agent-lock status               everything pinned on this machine
   agent-lock install [--strict]   PATH shims for claude / codex / gemini, git hooks, pin home
   agent-lock uninstall
+  agent-lock version              the version of agent-lock you are running
 
   env: AGENT_LOCK_SKIP=1 bypasses one launch (logged); AGENT_LOCK_ALLOW_NONINTERACTIVE=1 allows
   --dangerously-* flags with no terminal attached; AGENT_LOCK_ASCII=1 draws with plain ASCII;
@@ -44,8 +46,10 @@ const HELP = `agent-lock, pin the files your coding agents obey
 `;
 
 const argv = process.argv.slice(2);
-// `--help` and `-h` are what a first-time reader types; they are the same command as `help`.
-const cmd = !argv[0] || argv[0] === '--help' || argv[0] === '-h' ? 'help' : argv[0];
+// `--help` and `--version` are what a first-time reader types; they are the same commands as
+// the bare words, and a missing command is the help.
+const ALIAS = { '--help': 'help', '-h': 'help', '--version': 'version', '-v': 'version' };
+const cmd = !argv[0] ? 'help' : ALIAS[argv[0]] || argv[0];
 const flags = new Set(argv.slice(1).filter((a) => a.startsWith('--')));
 const target = argv.slice(1).find((a) => !a.startsWith('--'));
 const targetRoot = () => (target === 'home' ? 'home' : rootOf(target));
@@ -53,6 +57,14 @@ const targetRoot = () => (target === 'home' ? 'home' : rootOf(target));
 const COMMANDS = {
   help: () => {
     process.stdout.write(HELP);
+    return EXIT.OK;
+  },
+  // Read at call time, not at import: every `claude` launch loads this file, and the version is
+  // the one thing on it nothing on that path needs.
+  version: () => {
+    const pkg = JSON.parse(fs.readFileSync(new URL('package.json', import.meta.url), 'utf8'));
+    // stdout, like `help`: everything human goes to stderr because the POSIX shim reads stdout.
+    process.stdout.write(`agent-lock ${pkg.version}\n`);
     return EXIT.OK;
   },
   scan,

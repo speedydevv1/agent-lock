@@ -2,7 +2,11 @@
 
 All notable changes to agent-lock. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.0.1] - 2026-09-11
+
+First public release. The repository was private until 2026-09-05, so everything below this
+entry is development history that was never published under its own number. The version was
+reset to 0.0.1 for the release rather than continuing the private sequence.
 
 ### Fixed
 
@@ -109,9 +113,15 @@ All notable changes to agent-lock. The format follows [Keep a Changelog](https:/
   install runs. Seventeen jobs, all green: 30 tests, 27 on every platform, three skipping with the
   platform they are for. The Windows install job passes every step, all four shells included.
 
-## [0.3.0] - 2026-09-04
+---
 
-### Changed
+## Before the first release
+
+Private development, 2026-09-02 to 2026-09-04. These numbers were never published.
+
+### 0.3.0 - 2026-09-04
+
+#### Changed
 
 - The change screen follows the same rule the inventory already did: the flags and what runs are
   on screen in full, everything else is one line with a count and where it clusters. Forty lines
@@ -128,7 +138,7 @@ All notable changes to agent-lock. The format follows [Keep a Changelog](https:/
 - When nothing on the list runs, the screen says so in a sentence instead of leaving the reader
   to work it out from forty dim lines.
 
-### Added
+#### Added
 
 - **Windows.** `agent-lock install` writes `.cmd` and `.ps1` shims beside the POSIX one and puts
   the shim directory first on the user PATH through `SetEnvironmentVariable` (not `setx`, which
@@ -152,7 +162,7 @@ All notable changes to agent-lock. The format follows [Keep a Changelog](https:/
   `.claude/settings.local.json` from the repository root, so starting in a subdirectory applied a
   file agent-lock had never inventoried.
 
-### Fixed
+#### Fixed
 
 - Size only flags a file something would run. A 127 KB HTML report in a skill folder was raising
   "over 100 KB inside a dotfolder", which is the kind of flag that teaches a reader to skim.
@@ -180,7 +190,7 @@ All notable changes to agent-lock. The format follows [Keep a Changelog](https:/
   shim's `exec`. It is only ever set after a gate ran, and on Windows it is the only signal there
   is.
 
-### Changed
+#### Changed
 
 - The prompts are async and read the console Node can actually read on each platform: `/dev/tty`
   with `stty` on POSIX, `process.stdin` in raw mode on Windows, where a separately opened
@@ -190,7 +200,7 @@ All notable changes to agent-lock. The format follows [Keep a Changelog](https:/
   agent with a `/bin/sh` script and the one that drives a real pty say so and skip rather than
   pretending to pass.
 
-### Fixed after the first Windows run
+#### Fixed after the first Windows run
 
 The first time CI ever ran on Windows, four tests failed. Three were the harness, one was a
 claim that cannot hold there:
@@ -207,9 +217,9 @@ claim that cannot hold there:
   expand a glob for a native command and only Node 22 expands one itself. The script names both
   files.
 
-## [0.2.0] - 2026-09-03
+### 0.2.0 - 2026-09-03
 
-### Added
+#### Added
 
 - Every prompt is a menu: arrows or `j`/`k` move, Enter picks, the letters still work, Esc or
   Ctrl-C quit and the terminal is restored. Once answered the menu collapses to one line so the
@@ -229,7 +239,7 @@ claim that cannot hold there:
   land inside the folder under review. A stand-in model in the test suite fires a canary if its
   working directory holds agent config; it stays cold.
 
-### Changed
+#### Changed
 
 - `explain` sends the same bundle as `check` (flags, what moved since the pin, files ranked hot
   first) and no longer only the flagged files. It also runs from the same empty temporary folder
@@ -248,7 +258,7 @@ claim that cannot hold there:
   list, hot files first with what each one would do, then the hashed-but-inert ones.
 - `approve` on an unchanged pin prints the ok line instead of an empty diff.
 
-### Fixed
+#### Fixed
 
 - `trusted today` on a pin from last night: dates are compared as calendar days, not 24-hour
   windows.
@@ -273,9 +283,9 @@ claim that cannot hold there:
 - `agent-lock install` on Windows says Windows is not supported instead of writing POSIX shell
   shims that nothing would ever find. macOS, Linux and WSL are the supported platforms.
 
-## [0.1.1] - 2026-09-02
+### 0.1.1 - 2026-09-02
 
-### Fixed
+#### Fixed
 
 - Launch loop behind a PATH wrapper that execs "the next `claude`" (cmux ships one; mise and asdf
   shims behave the same). The shim now records the binaries it already handed the launch to and
@@ -283,16 +293,16 @@ claim that cannot hold there:
   child of the real tool (a hook calling `claude -p`) gets the binary its parent ran.
 - Fresh launch with no real binary on PATH printed the re-entry message instead of "not on PATH".
 
-### Changed
+#### Changed
 
 - Tests run under `node:test`. Biome formats and lints the tree (`npm run check`). CI runs both on
   macOS and Linux, Node 18 to 22, and checks `SHA256SUMS` against the tree.
 - `lib/manifest.mjs` split out of `lib/inventory.mjs`; exit codes named in `lib/exit-codes.mjs`.
   No behaviour change.
 
-## [0.1.0] - 2026-09-02
+### 0.1.0 - 2026-09-02
 
-### Added
+#### Added
 
 - First release. PATH shims for `claude`, `codex` and `gemini` that pin the agent config of a
   folder (`.claude/`, `.codex/`, `.gemini/`, `.vscode/`, `.cursor/`, `.mcp.json`, `CLAUDE.md`,
