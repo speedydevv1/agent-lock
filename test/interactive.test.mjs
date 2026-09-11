@@ -11,6 +11,13 @@ import { fakeTool, withPath } from './fake-tool.mjs';
 import { makeFixture } from './make-fixture.mjs';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-lock-ui-test-'));
+// A test started by a gated agent must not inherit a launch bypass or real user config.
+for (const key of Object.keys(process.env)) if (key.startsWith('AGENT_LOCK_')) delete process.env[key];
+process.env.HOME = path.join(tmp, 'home');
+fs.mkdirSync(process.env.HOME);
+process.env.CLAUDE_CONFIG_DIR = path.join(process.env.HOME, '.claude');
+process.env.CODEX_HOME = path.join(process.env.HOME, '.codex');
+delete process.env.GEMINI_CLI_SYSTEM_SETTINGS_PATH;
 process.env.AGENT_LOCK_HOME = path.join(tmp, 'lockhome');
 const repo = fs.realpathSync(makeFixture(path.join(tmp, 'fixture')));
 // URL.pathname is "/D:/a/…" on Windows and path.resolve makes that "D:\\D:\\a\\…".

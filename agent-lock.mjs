@@ -2,7 +2,7 @@
 // agent-lock: the trust prompt asks whether you trust a folder, once, blind. This pins the exact
 // agent config files (Claude Code, Codex, Gemini, plus the VS Code / Cursor files next to them),
 // shows you what is in them, and asks again the moment any of them change.
-// Zero dependencies. Node 18+. MIT.
+// Zero dependencies. Node 22+. MIT.
 import fs from 'node:fs';
 import {
   check,
@@ -30,9 +30,9 @@ const HELP = `agent-lock, pin the files your coding agents obey
   agent-lock verify [path]        exit 0 unchanged, 1 changed, 2 never pinned
   agent-lock diff [path]          what changed since the pin, hot lines first
   agent-lock approve [path]       review the diff, then re-pin
-  agent-lock report [path]        paths, hashes and flags as plain text, shareable
-  agent-lock check [path]         one word from the model, no tools, from an empty folder: clear, or no + one sentence
-                                  (--codex / --gemini ask that tool instead; AGENT_LOCK_CHECK_MODEL picks the model)
+  agent-lock report [path]        paths, hashes, flags and commands; review for secrets before sharing
+  agent-lock check [path]         model review from a temporary folder: clear, or no + one sentence
+                                  (--codex asks Codex; AGENT_LOCK_CHECK_MODEL picks the model)
   agent-lock explain [path]       the long version of check: what would run, when, in plain words
   agent-lock home                 the home-level config every launch reads
   agent-lock status               everything pinned on this machine
@@ -49,7 +49,7 @@ const argv = process.argv.slice(2);
 // `--help` and `--version` are what a first-time reader types; they are the same commands as
 // the bare words, and a missing command is the help.
 const ALIAS = { '--help': 'help', '-h': 'help', '--version': 'version', '-v': 'version' };
-const cmd = !argv[0] ? 'help' : ALIAS[argv[0]] || argv[0];
+const cmd = !argv[0] ? 'help' : Object.hasOwn(ALIAS, argv[0]) ? ALIAS[argv[0]] : argv[0];
 const flags = new Set(argv.slice(1).filter((a) => a.startsWith('--')));
 const target = argv.slice(1).find((a) => !a.startsWith('--'));
 const targetRoot = () => (target === 'home' ? 'home' : rootOf(target));
@@ -105,7 +105,7 @@ const COMMANDS = {
 };
 
 async function main() {
-  const command = COMMANDS[cmd];
+  const command = Object.hasOwn(COMMANDS, cmd) ? COMMANDS[cmd] : null;
   if (!command) {
     out(red(`unknown command: ${cmd}`), HELP);
     return 1;

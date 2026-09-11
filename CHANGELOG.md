@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Fix config review bypasses involving ordered arguments, dotted JSON keys, permission changes, removed files, and dotenv value changes. Unknown configuration keys now require approval.
+- Reject TOML prototype keys, keep snapshot paths confined, preserve JSON command strings, and escape terminal control sequences and log fields.
+- Refuse incomplete inventories, inspect parent repository config and plugin scripts, and recheck files after approval. Hashes and snapshots use the same read.
+- Harden shell and Windows launch paths. Refuse untracked launch overrides, disable Gemini model review and Codex safe mode, and apply checker isolation to `explain`.
+- Add security regression tests, secret scanning in CI, pinned GitHub Actions, dependency update configuration, and credential ignore rules. Require Node.js 22 or newer.
+- Simplify the README with CLI and skill installation commands and document the security limits.
+
 All notable changes to agent-lock. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.0.1] - 2026-09-11
