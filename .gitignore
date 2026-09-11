@@ -1,2 +1,16 @@
 node_modules/
 .DS_Store
+
+# Credentials and local security state
+.env
+.env.*
+!.env.example
+!.env.template
+*.pem
+*.key
+*.p12
+*.pfx
+.npmrc
+.agent-lock/
+*.log
+*.tgz

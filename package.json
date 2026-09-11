@@ -14,17 +14,19 @@
     "skills/",
     ".claude-plugin/",
     "README.md",
+    "SECURITY.md",
+    "CHANGELOG.md",
     "LICENSE",
     "SHA256SUMS"
   ],
   "scripts": {
-    "test": "node --test test/agent-lock.test.mjs test/interactive.test.mjs",
+    "test": "node --test test/agent-lock.test.mjs test/interactive.test.mjs test/security.test.mjs",
     "check": "biome check .",
     "format": "biome format --write .",
     "checksums": "shasum -a 256 agent-lock.mjs lib/*.mjs git-hooks/hook.sh hooks/hooks.json > SHA256SUMS"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "license": "MIT",
   "repository": {

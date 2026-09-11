@@ -11,6 +11,13 @@ import { fakeTool, withPath } from './fake-tool.mjs';
 import { makeFixture } from './make-fixture.mjs';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-lock-ui-test-'));
+// A test started by a gated agent must not inherit a launch bypass or real user config.
+for (const key of Object.keys(process.env)) if (key.startsWith('AGENT_LOCK_')) delete process.env[key];
+process.env.HOME = path.join(tmp, 'home');
+fs.mkdirSync(process.env.HOME);
+process.env.CLAUDE_CONFIG_DIR = path.join(process.env.HOME, '.claude');
+process.env.CODEX_HOME = path.join(process.env.HOME, '.codex');
+delete process.env.GEMINI_CLI_SYSTEM_SETTINGS_PATH;
 process.env.AGENT_LOCK_HOME = path.join(tmp, 'lockhome');
 const repo = fs.realpathSync(makeFixture(path.join(tmp, 'fixture')));
 // URL.pathname is "/D:/a/…" on Windows and path.resolve makes that "D:\\D:\\a\\…".
@@ -68,6 +75,8 @@ if (process.env.FAKE_VERDICT === 'fail') {
   process.stderr.write('boom\\n');
   process.exit(3);
 }
+if (process.env.FAKE_HOME_EDIT)
+  fs.writeFileSync(process.env.FAKE_HOME_EDIT, '{"apiKeyHelper":"echo changed-during-review"}');
 const answer =
   process.env.FAKE_VERDICT === 'no'
     ? 'NO\\n.vscode/setup.mjs is an obfuscated dropper started by the SessionStart hook.'
@@ -169,6 +178,65 @@ const noPty =
 // colours out: assertions match on what a reader sees, not on escape sequences
 // biome-ignore lint/suspicious/noControlCharactersInRegex: ESC is the thing being stripped
 const readable = (r) => `${r.stdout}\n[stderr] ${r.stderr}`.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '');
+
+test('ancestor safe mode refuses home configuration changed during model review', {
+  skip: noPty,
+}, async () => {
+  const { inventoryCheckout, inventoryHome } = await import('../lib/inventory.mjs');
+  const { seal } = await import('../lib/manifest.mjs');
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(tmp, 'ancestor-safe-')));
+  const sub = path.join(root, 'src');
+  fs.mkdirSync(sub);
+  fs.mkdirSync(path.join(root, '.git'));
+  fs.mkdirSync(path.join(root, '.claude'));
+  const settings = path.join(root, '.claude/settings.json');
+  fs.writeFileSync(settings, '{}');
+  fs.mkdirSync(process.env.CLAUDE_CONFIG_DIR, { recursive: true });
+  const homeSettings = path.join(process.env.CLAUDE_CONFIG_DIR, 'settings.json');
+  fs.writeFileSync(homeSettings, '{}');
+  seal(inventoryHome());
+  seal(inventoryCheckout(root));
+  seal(inventoryCheckout(sub));
+  fs.writeFileSync(settings, '{"apiKeyHelper":"echo changed"}');
+  try {
+    const r = spawnSync(
+      PY,
+      [
+        DRIVER,
+        JSON.stringify([
+          [1.5, 'c'],
+          [2, 's'],
+        ]),
+        '--',
+        process.execPath,
+        CLI,
+        'gate',
+        'claude',
+        '--',
+      ],
+      {
+        cwd: sub,
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          PATH: withPath(fakeModel(path.join(tmp, 'safe-modelbin')), process.env.PATH),
+          FAKE_HOME_EDIT: homeSettings,
+          FAKE_RECORD: path.join(tmp, 'safe-check-record'),
+          FAKE_CANARY: path.join(tmp, 'safe-check-canary'),
+          PTY_COLS: '120',
+        },
+        timeout: 45_000,
+      }
+    );
+    const output = readable(r);
+    assert.ok(output.includes('safe mode:'), output);
+    assert.ok(output.includes('configuration changed during review'), output);
+    assert.ok(output.includes('[exit 1]'), output);
+  } finally {
+    fs.rmSync(homeSettings);
+    seal(inventoryHome());
+  }
+});
 
 test('menu: arrows and Enter pick, a letter picks directly, Ctrl-C quits and restores the terminal', {
   skip: process.platform === 'win32' ? 'this one drives sh and reads stty back; ConPTY has its own' : noPty,
