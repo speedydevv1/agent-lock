@@ -5,11 +5,12 @@
 # would print here). Every hook name then falls through to the repo's own .git/hooks/<name>,
 # so nothing you had before is lost.
 name="$(basename "$0")"
-AGENT_LOCK_MJS=__MJS__
-NODE_BIN=__NODE__
+AGENT_LOCK_MJS="__MJS__"
+NODE_BIN="__NODE__"
+[ -x "$NODE_BIN" ] || NODE_BIN=node
 case "$name" in
   post-merge|post-checkout|post-rewrite)
-    if [ -x "$NODE_BIN" ] && [ -f "$AGENT_LOCK_MJS" ] && [ "$AGENT_LOCK_SKIP" != "1" ]; then
+    if [ -f "$AGENT_LOCK_MJS" ] && [ "$AGENT_LOCK_SKIP" != "1" ]; then
       NODE_OPTIONS= "$NODE_BIN" "$AGENT_LOCK_MJS" verify --quiet "--hook=$name" || true
     fi ;;
 esac

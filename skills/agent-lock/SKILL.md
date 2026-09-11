@@ -15,7 +15,7 @@ State lives in `~/.agent-lock/` (manifest, snapshots, log). The CLI is `agent-lo
 |---|---|
 | Is this folder pinned, what changed | `agent-lock diff` |
 | Everything pinned on this machine | `agent-lock status` |
-| Full inventory with hashes, flags, and commands (review for secrets before sharing) | `agent-lock report` |
+| Full inventory with hashes and flags, shareable | `agent-lock report` |
 | Every folder Claude / Codex / Gemini already trust | `agent-lock scan` (interactive, the user answers) |
 | The user-level config (hooks, plugins, trust maps) | `agent-lock diff home` |
 
