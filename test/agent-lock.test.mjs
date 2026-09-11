@@ -620,8 +620,9 @@ fs.writeFileSync(${JSON.stringify(record)}, JSON.stringify(process.argv.slice(2)
   // but an argument must never split into two or disappear: that is how an extra flag gets in.
   // What a user may type, minus the quote-and-metacharacter combination, which is refused at the
   // launch rather than passed through (see the .cmd shim test). These have to arrive intact too.
-  const typed = ['^&|<>()', 'trailing\\', 'a;b,c', '!bang!', '*', '?', 'say "hi" twice', 'fifty% done'];
+  const typed = ['^&|<>()', 'trailing\\', 'a;b,c', '!bang!', '*', '?', 'say "hi" twice'];
   for (const arg of typed) assert.deepEqual(sent([arg]), [arg]);
+  for (const arg of ['%USERNAME%', 'fifty% done']) assert.throws(() => sent([arg]), /unsafe/);
   assert.throws(
     () => sent(typed),
     /unsafe/,

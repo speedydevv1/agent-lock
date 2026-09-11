@@ -24,7 +24,7 @@ const { isInside, shellQuote } = await import('../lib/paths.mjs');
 const { runnable } = await import('../lib/spawn.mjs');
 const { bundle } = await import('../lib/bundle.mjs');
 const { visible } = await import('../lib/ui.mjs');
-const { assertCheckerIsolation, agentCheck } = await import('../lib/check.mjs');
+const { assertCheckerIsolation, agentCheck, runChecker } = await import('../lib/check.mjs');
 
 function fixture() {
   const root = fs.mkdtempSync(path.join(tmp, 'repo-'));
@@ -246,6 +246,44 @@ test('a symlinked config directory cannot disappear from the inventory', () => {
   assert.equal(cli(root, ['verify']).status, 3);
 });
 
+test('root dotenv discovery enforces the file limit without any agent directories', () => {
+  const root = fixture();
+  for (let i = 0; i < 3; i++) write(root, `.env.${i}`, 'TOKEN=fixture-private');
+  const old = LIMITS.files;
+  try {
+    LIMITS.files = 2;
+    assert.throws(() => inventoryCheckout(root), /file limit/);
+  } finally {
+    LIMITS.files = old;
+  }
+});
+
+test('file symlinks cannot copy external secrets into the inventory', {
+  skip: process.platform === 'win32' ? 'file symlinks require Windows privileges' : false,
+}, () => {
+  const root = fixture();
+  const outside = fixture();
+  write(outside, 'private-key', 'fixture-external-secret');
+  fs.symlinkSync(path.join(outside, 'private-key'), path.join(root, 'CLAUDE.md'));
+  assert.throws(() => inventoryCheckout(root), /symlink outside the repo/);
+  const r = cli(root, ['report']);
+  assert.equal(r.status, 3, r.stderr);
+  assert.ok(!`${r.stdout}${r.stderr}`.includes('fixture-external-secret'));
+  fs.rmSync(path.join(root, 'CLAUDE.md'));
+  write(root, 'instructions.md', 'local instructions');
+  fs.symlinkSync(path.join(root, 'instructions.md'), path.join(root, 'CLAUDE.md'));
+  assert.equal(inventoryCheckout(root).files[0].text, 'local instructions');
+});
+
+test('script references cannot escape through a symlinked parent directory', () => {
+  const root = fixture();
+  const outside = fixture();
+  write(outside, 'run.js', 'fixture-external-secret');
+  fs.symlinkSync(outside, path.join(root, 'linked'), process.platform === 'win32' ? 'junction' : 'dir');
+  write(root, '.claude/settings.json', '{"apiKeyHelper":"node linked/run.js"}');
+  assert.throws(() => inventoryCheckout(root), /symlink outside the repo/);
+});
+
 test('FIFO inputs cannot block the gate while it tries to hash them', {
   skip: process.platform === 'win32' ? 'POSIX named pipes only' : false,
 }, () => {
@@ -283,9 +321,40 @@ test('shell path quoting cannot execute command substitutions', {
 });
 
 test('every Windows batch launch path rejects unsafe arguments before spawning', () => {
-  for (const args of [['say "hi"&echo canary'], ['line1\nline2'], ['a', 'x\ry']])
+  for (const args of [
+    ['say "hi"&echo canary'],
+    ['line1\nline2'],
+    ['a', 'x\ry'],
+    ['%USERNAME%'],
+    ['fifty% done'],
+  ])
     assert.throws(() => runnable('C:\\bin\\tool.cmd', args, true), /unsafe/);
   assert.throws(() => runnable('C:\\%VAR%\\tool.cmd', [], true), /unsafe/);
+  assert.deepEqual(runnable('C:\\bin\\tool.exe', ['%USERNAME%'], true).args, ['%USERNAME%']);
+});
+
+test('checker timeout kills a process that ignores SIGTERM and releases its listeners', async () => {
+  const root = fixture();
+  write(
+    root,
+    'stubborn.mjs',
+    `process.on('SIGTERM', () => {});
+process.stdout.write('READY');
+setInterval(() => {}, 1000);
+`
+  );
+  const before = process.listenerCount('SIGINT');
+  const started = Date.now();
+  const r = await runChecker(process.execPath, [path.join(root, 'stubborn.mjs')], {
+    cwd: root,
+    input: '',
+    timeoutMs: 1500,
+    killGraceMs: 100,
+  });
+  assert.equal(r.ended, 'timeout');
+  assert.match(r.stdout, /READY/);
+  assert.ok(Date.now() - started < 10_000, 'a timeout must return after escalation');
+  assert.equal(process.listenerCount('SIGINT'), before);
 });
 
 test('terminal inspection renders screen and clipboard escapes visibly', () => {

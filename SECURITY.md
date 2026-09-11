@@ -11,13 +11,15 @@ Use [GitHub private vulnerability reporting](https://github.com/speedydevv1/agen
 - Configuration files, referenced local scripts, and installed Claude plugin hook definitions and their literal script references.
 - Repository settings above a nested working directory, up to its repository root.
 - Semantic configuration changes, including argument order, new keys, permission grants, and removed configuration files. Reordering object keys or permission lists is ignored. Ordinary document edits remain minor changes.
-- Symlink targets for individual files. Directory symlinks and non-regular files are refused because their contents cannot be fully inventoried by this version.
+- Symlink targets for individual files inside the checkout. Links that escape the checkout, directory symlinks, and non-regular files are refused. Home inventory also covers installed plugins outside the home directory.
 
 Scans refuse when the file count or directory depth limit is exceeded. Binary files and files larger than the text limit are hashed but cannot be reviewed as text. The current limits are in `lib/inventory.mjs`.
 
 Launch flags that select another directory, worktree, or extra settings are refused. Change into the target folder first. An intentional exception can use `AGENT_LOCK_SKIP=1`, which is logged.
 
 Only Claude has a safe-mode option. Codex and Gemini do not have a verified equivalent that excludes all project configuration.
+
+Windows batch launchers refuse arguments containing percent signs because `cmd.exe` can expand them as environment variables. Use a native executable or pass that text on stdin.
 
 ## Secrets and model review
 
