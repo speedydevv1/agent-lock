@@ -1,35 +1,24 @@
-# agent-lock
+<h1 align="center">agent-lock</h1>
 
-The trust prompt asks whether you trust a folder. Once, blind.
-agent-lock asks whether you trust **these exact files**, shows you what is in them, and asks again the moment any of them change.
+<p align="center">
+  <b>The trust prompt asks whether you trust a folder. Once, blind.</b><br>
+  agent-lock asks whether you trust <b>these exact files</b>, shows you what is in them,<br>
+  and asks again the moment any of them change.
+</p>
 
-## The issue
+<p align="center">
+  <a href="https://github.com/speedydevv1/agent-lock/actions/workflows/ci.yml"><img alt="ci" src="https://github.com/speedydevv1/agent-lock/actions/workflows/ci.yml/badge.svg"></a>
+  <img alt="dependencies: 0" src="https://img.shields.io/badge/dependencies-0-2ea043">
+  <img alt="node 18 or newer" src="https://img.shields.io/badge/node-%E2%89%A5%2018-5fa04e?logo=node.js&logoColor=white">
+  <img alt="macOS, Linux, Windows" src="https://img.shields.io/badge/macOS%20%7C%20Linux%20%7C%20Windows-informational">
+  <img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue">
+</p>
 
-1. Every AI coding tool asks the same question the first time you open a folder: do you trust this folder? You click yes. Once.
-2. After that, it reads a handful of small files in that folder on every launch, and some of those files are not settings, they are commands.
-3. A hook in `.claude/settings.json` runs a shell command every time a session starts. A task in `.vscode/tasks.json` can run when the folder opens. Nobody asks again.
-4. On 4 August 2026 that is exactly what hit the keyv repositories. A commit added those two files, cross-wired, each launching a hidden script in the other tool's folder.
-5. Anyone who pulled and typed `claude` ran it. The trust dialog had been clicked months earlier. Same shape in May with TanStack, same shape in June with the wave that wrote itself into home folders.
-6. I went and looked at my own Mac. Nineteen folders trusted. `Bash(*)` pre-approved in three of them. MCP servers pulling whatever the registry serves that day. I had never read any of it.
-7. Codex checks its hooks. Gemini checks its hooks. Claude Code used to review them and removed it earlier this year. Nothing looks at all of it together, and nothing looks at the folder in your home that every launch reads.
-8. Anthropic's position on record is that this is outside their threat model. Six advisories on this surface say otherwise.
-9. So the dangerous moment is not the first look. It is every `git pull` after you already said yes.
-10. I did not want a scanner that tells me afterwards. I wanted the question asked again, at the moment I type the command.
+<p align="center">
+  <sub>Claude Code &nbsp;&middot;&nbsp; Codex CLI &nbsp;&middot;&nbsp; Gemini CLI &nbsp;&middot;&nbsp; VS Code &nbsp;&middot;&nbsp; Cursor</sub>
+</p>
 
-## What it does
-
-1. One small program, no dependencies, nothing fetched from the internet, you can read all of it.
-2. The first time you run it, it lists every folder your tools already trust and shows you what is inside: which files, which commands, when they would run.
-3. You read it, you say yes. It takes a fingerprint of every one of those files and keeps the list outside the folder, where the folder cannot touch it.
-4. From then on, typing `claude`, `codex` or `gemini` checks the fingerprints first. Same files, it launches, one grey line, done.
-5. If a file that runs something changed, it stops and shows you the exact line that moved. Approve, read it, ask the tool's own model for a one-word read first, launch without the folder's settings, or quit.
-6. It knows the difference between a note and a command. Edit a doc, nothing happens. Edit a hook, any hook, it stops.
-7. It watches your home folder the same way, because that is where the June wave hid.
-8. It points at the shapes the real attacks used, in plain sentences: a hook reaching into `.vscode`, a task that runs on folder open, scrambled code, a 700 KB file where a config should be.
-9. It refuses to start an agent in "skip all permissions" mode when no human is at the keyboard. That is how the Nx attack drove its agents.
-10. It does not decide for you and it does not claim a folder is safe. It remembers what you agreed to, and asks again when that changes.
-
-It cannot tell who made a change, only that the content is no longer what you approved. It tells you at three moments: right after a `git pull` or `git checkout` (the git hook prints it under the pull output), when you type the command (the gate, nothing launches until you answer), and mid-session inside Claude Code (the plugin holds the change until you approve it). `~/.agent-lock/log` keeps every approval with a timestamp.
+---
 
 ```
 $ claude
@@ -54,30 +43,16 @@ Arrows or a letter, Enter picks. `check` asks the tool you just launched: `claud
 
 That is the shape of the commit that hit the keyv repositories on 4 August 2026: a `.claude/settings.json` hook and a `.vscode/tasks.json` task, cross-wired, each launching a dropper hidden in the other tool's folder. `git pull`, open the folder, type `claude`, done. The trust dialog had been clicked months earlier.
 
-Zero dependencies, one `node` file plus a `lib/`, MIT. macOS, Linux and Windows.
+It cannot tell who made a change, only that the content is no longer what you approved. It tells you at three moments: right after a `git pull` or `git checkout` (the git hook prints it under the pull output), when you type the command (the gate, nothing launches until you answer), and mid-session inside Claude Code (the plugin holds the change until you approve it). `~/.agent-lock/log` keeps every approval with a timestamp.
 
-## What it covers
-
-| Tool | In the repo | In your home |
-|---|---|---|
-| Claude Code | `.claude/**`, `.mcp.json`, `CLAUDE.md` | `~/.claude/settings.json`, `~/.claude.json` (trust map + MCP approvals), enabled plugin hooks, managed settings |
-| Codex CLI | `.codex/**`, `AGENTS.md` | `~/.codex/config.toml` (trust map + hook trust), `~/.codex/hooks.json` |
-| Gemini CLI | `.gemini/**`, `GEMINI.md`, `.env` (key names only) | `~/.gemini/settings.json`, `~/.gemini/trustedFolders.json` |
-| VS Code / Cursor | `.vscode/**` (`tasks.json`, `launch.json`, `settings.json`), `.cursor/**` | `~/.cursor/mcp.json`, `~/.cursor/hooks.json` |
-| Dev containers | `.devcontainer/**`, `.devcontainer.json` | |
-
-Plus every file a hook, task or MCP command points at. Symlinks: the target is hashed, a target outside the repo is a flag.
-
-An administrator's policy counts as home config: `managed-settings.json`, every drop-in beside it in `managed-settings.d/`, and `managed-mcp.json`, in `/Library/Application Support/ClaudeCode` on macOS, `/etc/claude-code` on Linux and WSL, and `C:\Program Files\ClaudeCode` on Windows. On Windows the same policy can arrive through the registry, so `HKLM\SOFTWARE\Policies\ClaudeCode` and the user-writable `HKCU\SOFTWARE\Policies\ClaudeCode` are read and fingerprinted too. Gemini's system file is read from `%ProgramData%\gemini-cli` (or `GEMINI_CLI_SYSTEM_SETTINGS_PATH`). `CLAUDE_CONFIG_DIR` and `CODEX_HOME` are honoured: agent-lock watches the directory the tool actually reads, not the default one.
-
-A dev container is in the table because opening the folder runs commands, and `initializeCommand` runs on the host, outside the container.
+Zero dependencies. One `node` file plus a `lib/`. Nothing is fetched at runtime, and you can read all of it in an afternoon.
 
 ## Install
 
 macOS and Linux:
 
 ```sh
-git clone https://github.com/ZeiProX76/agent-lock ~/agent-lock
+git clone https://github.com/speedydevv1/agent-lock ~/agent-lock
 node ~/agent-lock/agent-lock.mjs install
 # open a new terminal
 agent-lock scan
@@ -86,7 +61,7 @@ agent-lock scan
 Windows, in PowerShell or `cmd`:
 
 ```powershell
-git clone https://github.com/ZeiProX76/agent-lock "$HOME\agent-lock"
+git clone https://github.com/speedydevv1/agent-lock "$HOME\agent-lock"
 node "$HOME\agent-lock\agent-lock.mjs" install
 # open a new terminal
 agent-lock scan
@@ -108,11 +83,58 @@ Windows needs nothing installed beyond Node and git. There is no `.ps1` shim on 
 Optional backstop inside Claude Code (blocks a mid-session settings edit that adds something that runs, and warns when a session skipped the gate):
 
 ```sh
-claude plugin marketplace add ZeiProX76/agent-lock
+claude plugin marketplace add speedydevv1/agent-lock
 claude plugin install agent-lock@agent-lock
 ```
 
+## The issue
+
+
+1. Every AI coding tool asks the same question the first time you open a folder: do you trust this folder? You click yes. Once.
+2. After that, it reads a handful of small files in that folder on every launch, and some of those files are not settings, they are commands.
+3. A hook in `.claude/settings.json` runs a shell command every time a session starts. A task in `.vscode/tasks.json` can run when the folder opens. Nobody asks again.
+4. On 4 August 2026 that is exactly what hit the keyv repositories. A commit added those two files, cross-wired, each launching a hidden script in the other tool's folder.
+5. Anyone who pulled and typed `claude` ran it. The trust dialog had been clicked months earlier. Same shape in May with TanStack, same shape in June with the wave that wrote itself into home folders.
+6. I went and looked at my own Mac. Nineteen folders trusted. `Bash(*)` pre-approved in three of them. MCP servers pulling whatever the registry serves that day. I had never read any of it.
+7. Codex checks its hooks. Gemini checks its hooks. Claude Code used to review them and removed it earlier this year. Nothing looks at all of it together, and nothing looks at the folder in your home that every launch reads.
+8. Anthropic's position on record is that this is outside their threat model. Six advisories on this surface say otherwise.
+9. So the dangerous moment is not the first look. It is every `git pull` after you already said yes.
+10. I did not want a scanner that tells me afterwards. I wanted the question asked again, at the moment I type the command.
+
+## What it does
+
+
+
+1. One small program, no dependencies, nothing fetched from the internet, you can read all of it.
+2. The first time you run it, it lists every folder your tools already trust and shows you what is inside: which files, which commands, when they would run.
+3. You read it, you say yes. It takes a fingerprint of every one of those files and keeps the list outside the folder, where the folder cannot touch it.
+4. From then on, typing `claude`, `codex` or `gemini` checks the fingerprints first. Same files, it launches, one grey line, done.
+5. If a file that runs something changed, it stops and shows you the exact line that moved. Approve, read it, ask the tool's own model for a one-word read first, launch without the folder's settings, or quit.
+6. It knows the difference between a note and a command. Edit a doc, nothing happens. Edit a hook, any hook, it stops.
+7. It watches your home folder the same way, because that is where the June wave hid.
+8. It points at the shapes the real attacks used, in plain sentences: a hook reaching into `.vscode`, a task that runs on folder open, scrambled code, a 700 KB file where a config should be.
+9. It refuses to start an agent in "skip all permissions" mode when no human is at the keyboard. That is how the Nx attack drove its agents.
+10. It does not decide for you and it does not claim a folder is safe. It remembers what you agreed to, and asks again when that changes.
+
+## What it covers
+
+
+| Tool | In the repo | In your home |
+|---|---|---|
+| Claude Code | `.claude/**`, `.mcp.json`, `CLAUDE.md` | `~/.claude/settings.json`, `~/.claude.json` (trust map + MCP approvals), enabled plugin hooks, managed settings |
+| Codex CLI | `.codex/**`, `AGENTS.md` | `~/.codex/config.toml` (trust map + hook trust), `~/.codex/hooks.json` |
+| Gemini CLI | `.gemini/**`, `GEMINI.md`, `.env` (key names only) | `~/.gemini/settings.json`, `~/.gemini/trustedFolders.json` |
+| VS Code / Cursor | `.vscode/**` (`tasks.json`, `launch.json`, `settings.json`), `.cursor/**` | `~/.cursor/mcp.json`, `~/.cursor/hooks.json` |
+| Dev containers | `.devcontainer/**`, `.devcontainer.json` | |
+
+Plus every file a hook, task or MCP command points at. Symlinks: the target is hashed, a target outside the repo is a flag.
+
+An administrator's policy counts as home config: `managed-settings.json`, every drop-in beside it in `managed-settings.d/`, and `managed-mcp.json`, in `/Library/Application Support/ClaudeCode` on macOS, `/etc/claude-code` on Linux and WSL, and `C:\Program Files\ClaudeCode` on Windows. On Windows the same policy can arrive through the registry, so `HKLM\SOFTWARE\Policies\ClaudeCode` and the user-writable `HKCU\SOFTWARE\Policies\ClaudeCode` are read and fingerprinted too. Gemini's system file is read from `%ProgramData%\gemini-cli` (or `GEMINI_CLI_SYSTEM_SETTINGS_PATH`). `CLAUDE_CONFIG_DIR` and `CODEX_HOME` are honoured: agent-lock watches the directory the tool actually reads, not the default one.
+
+A dev container is in the table because opening the folder runs commands, and `initializeCommand` runs on the host, outside the container.
+
 ## Every launch
+
 
 Typing `claude`, `codex` or `gemini` runs the check first, then execs the real binary.
 
@@ -154,11 +176,13 @@ The test suite proves the isolation without a network: the stand-in model fires 
 
 ## What blocks, what is dim
 
+
 Blocks (asks): hooks, MCP `command` / `args` / `url` / `env`, `env`, `apiKeyHelper` and the other helper commands, `statusLine.command`, `permissions.defaultMode`, `permissions.additionalDirectories`, `Bash(*)`-style allow rules, `enableAllProjectMcpServers`, `disableAllHooks`, `sandbox.*`, plugin enablement, `.vscode/tasks.json` (all of it), `.vscode/launch.json` (`preLaunchTask`, `program`, `runtimeExecutable`, `args`, `env`), dev container `initializeCommand` / `postCreateCommand` and the rest of the lifecycle, Cursor `mcp.json` / `hooks.json`, Codex `hooks`, `mcp_servers`, `trust_level`, `notify`, `model_providers`, Gemini `hooks`, `mcpServers`, `tools.*`, `security.*`, any file a command points at, any new flag.
 
 Dim (shown, re-pinned): everything else. `CLAUDE.md`, skills, rules, scoped permission rules, MCP approvals you clicked, `model`, key order.
 
 ## Flags
+
 
 Deterministic sentences, no score:
 
@@ -180,6 +204,7 @@ Run against the published contents of the August 2026 keyv commit, six fire: the
 
 ## Commands
 
+
 ```
 agent-lock scan                 first run: every folder your tools already trust, inventoried, pinned by you
 agent-lock seal [path]          pin one checkout
@@ -199,11 +224,13 @@ State: `~/.agent-lock/manifest.json` (mode 0600 on macOS and Linux; on Windows t
 
 ## Verify what you installed
 
+
 ```sh
 cd ~/agent-lock && shasum -a 256 -c SHA256SUMS
 ```
 
 ## Limits, stated
+
 
 - **First clone is blind.** A pin records what is there; it does not vouch for it. The flags help you read, they do not decide.
 - **Same privilege.** Code already running as you can rewrite `~/.agent-lock/manifest.json`. This raises the bar, it is not a security boundary.
@@ -223,13 +250,16 @@ cd ~/agent-lock && shasum -a 256 -c SHA256SUMS
 
 ## Why not a SessionStart hook
 
+
 The first version was a user-scope `SessionStart` hook. Two problems: `SessionStart` cannot block (exit 2 only prints), and it runs in parallel with the repo's own `SessionStart` hook, so the guard fired at the same moment the payload did. A repo's `.claude/settings.json` can also set `disableAllHooks: true` and switch user hooks off. The gate has to sit in front of the launch, not inside the session. Claude Code itself had a snapshot-and-review step for hooks until early 2026 and removed it in favour of hot reload plus a `ConfigChange` event; the plugin here uses that event as a backstop, the shim is the gate.
 
 ## Prior art
 
+
 Codex CLI hook trust (`trusted_hash`), Gemini CLI hook fingerprinting and Trusted Folders, Cursor's MCP re-prompt after CVE-2025-54136, [rtk](https://github.com/rtk-ai/rtk) hashing its own hook, [agentshield](https://github.com/kdcokenny/agentshield), AIDE / Tripwire for the idea of a pinned manifest. None of them looked across everything one machine obeys; that is the only thing this adds.
 
 ## Test
+
 
 ```sh
 npm test          # node:test, no dependencies
